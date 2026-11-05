@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#efe7da">
+  <title>Тихая почта</title>
+  <meta name="description" content="Пошаговая головоломка: проложите ленты, чтобы письма доехали до своих ящиков.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <p class="brand">Тихая почта</p>
+    <p id="level-tag" class="level-tag">Уровень 1</p>
+  </header>
+  <h1>Тихая почта</h1>
+  <p class="lede">Проложите ленты так, чтобы каждое письмо доехало до своего ящика.</p>
+  <section class="level-picker" aria-label="Выбор уровня">
+    <div id="level-options" class="level-options" role="group" aria-label="Уровни"></div>
+    <p class="level-detail"><strong id="level-name">Прямая лента</strong> <span id="level-hint"></span></p>
+  </section>
+  <div class="play">
+    <div class="field">
+      <div id="status" class="status" role="status" aria-live="polite">
+        <span class="status-icon" aria-hidden="true"></span>
+        <div>
+          <strong id="status-title">Разложите ленты</strong>
+          <p id="status-text">Клик меняет деталь, протяжка рисует ленту.</p>
+        </div>
+      </div>
+      <div id="board" class="board" role="grid" aria-label="Поле сортировки"></div>
+    </div>
+    <div class="panel">
+      <div class="controls">
+        <button id="run" type="button"><span class="ico" aria-hidden="true"></span><span class="lbl">Запустить</span></button>
+        <button id="step" type="button"><span class="ico" aria-hidden="true"></span><span class="lbl">Шаг</span></button>
+        <button id="undo" type="button"><span class="ico" aria-hidden="true"></span><span class="lbl">Отменить</span></button>
+        <button id="reset" type="button"><span class="ico" aria-hidden="true"></span><span class="lbl">Заново</span></button>
+      </div>
+      <p class="keys">Стрелки двигают курсор. Enter или пробел меняет деталь.</p>
+      <p id="save-status" class="save-status"></p>
+      <div id="legend" class="legend" aria-label="Условные обозначения"></div>
+    </div>
+  </div>
+  <section class="rules">
+    <h2>Правила</h2>
+    <ol>
+      <li>Письмо выезжает из источника и едет по лентам до ящика того же цвета и той же формы.</li>
+      <li>Клик по клетке меняет деталь по кругу: прямые, четыре поворота и мост. Протяжка рисует ленту.</li>
+      <li>Мост-развязка — две ленты в одной клетке. Они пересекаются и не сталкиваются.</li>
+      <li>«Запустить» доводит доставку до конца. «Шаг» показывает один ход. Первая ошибка — тупик, чужой ящик, столкновение или выход за поле — подсвечивается и объясняется текстом.</li>
+    </ol>
+  </section>
+</main>
+<noscript><p>Для игры нужен JavaScript. Сборка и сеть не нужны.</p></noscript>
+<script type="module" src="app.js"></script>
+</body>
+</html>
