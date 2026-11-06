@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { LEVELS } from '../dist/levels.js';
-import { createCampaign, emptyLayout } from '../dist/engine.js';
+import { canPlace, createCampaign, emptyLayout } from '../dist/engine.js';
 import { SAVE_KEY, restoreCampaign, saveCampaign } from '../dist/save.js';
 
 const solutions = JSON.parse(await readFile(new URL('./solutions.json', import.meta.url), 'utf8'));
@@ -35,27 +35,29 @@ test('save keeps the level, solved set, draft and undo across reload', () => {
   place(campaign, '1');
   assert.equal(campaign.run().status, 'won');
   campaign.selectLevel('2');
-  campaign.cycle(0, 0);
-  campaign.cycle(0, 0);
+  let spot = null;
+  for (let r = 0; r < LEVELS[1].size && !spot; r += 1) {
+    for (let c = 0; c < LEVELS[1].size; c += 1) if (canPlace(LEVELS[1], r, c)) { spot = [r, c]; break; }
+  }
+  campaign.cycle(spot[0], spot[1]);
+  campaign.cycle(spot[0], spot[1]);
   assert.equal(saveCampaign(store, campaign), true);
   const restored = restoreCampaign(store);
   assert.equal(restored.level.id, '2');
   assert.deepEqual(restored.completed, ['1']);
-  assert.equal(restored.layout[0][0], 'v');
+  assert.equal(restored.layout[spot[0]][spot[1]], 'v');
   restored.undo();
-  assert.equal(restored.layout[0][0], 'h');
+  assert.equal(restored.layout[spot[0]][spot[1]], 'h');
   restored.selectLevel('1');
-  assert.equal(restored.layout[2][1], 'h');
-  assert.equal(restored.layout[2][2], 'h');
-  assert.equal(restored.layout[2][3], 'h');
+  for (const cell of solutions['1']) assert.equal(restored.layout[cell.r][cell.c], cell.p);
   const again = memory();
   saveCampaign(again, restored);
   const reloaded = restoreCampaign(again);
   assert.equal(reloaded.level.id, '1');
-  assert.equal(reloaded.layout[2][2], 'h');
-  reloaded.undo();
-  assert.equal(reloaded.layout[2][3], null);
-  assert.equal(reloaded.layout[2][2], 'h');
+  const last = solutions['1'].at(-1);
+  const cycles = ['h', 'v', 'ne', 'se', 'sw', 'nw', 'bridge'].indexOf(last.p) + 1;
+  for (let step = 0; step < cycles; step += 1) reloaded.undo();
+  assert.equal(reloaded.layout[last.r][last.c], null);
 });
 
 test('broken, incompatible and oversized saves reset to the start', () => {

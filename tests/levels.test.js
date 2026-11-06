@@ -12,27 +12,26 @@ function apply(level, solution) {
   return layout;
 }
 
-function sharedCrossings(result) {
-  const hits = [];
-  for (const frame of result.frames) {
-    const groups = new Map();
-    for (const letter of frame.letters) {
-      if (letter.delivered) continue;
-      const key = `${letter.r},${letter.c}`;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(letter);
-    }
-    for (const group of groups.values()) if (group.length > 1) hits.push(group);
+function lanesThroughBridges(result, pieces) {
+  const lanes = new Map();
+  for (const piece of pieces) {
+    if (piece.p === 'bridge') lanes.set(`${piece.r},${piece.c}`, new Set());
   }
-  return hits;
+  for (const frame of result.frames) {
+    for (const letter of frame.letters) {
+      const key = `${letter.r},${letter.c}`;
+      if (lanes.has(key) && letter.lane) lanes.get(key).add(letter.lane);
+    }
+  }
+  return lanes;
 }
 
-test('campaign has six increasingly capable puzzles', () => {
+test('campaign has six levels inside the 5×5–6×6 scale', () => {
   assert.equal(LEVELS.length, 6);
   assert.deepEqual(LEVELS.map(level => level.size), [5, 5, 5, 6, 5, 6]);
-  assert.deepEqual(LEVELS.map(level => level.sources.length), [1, 1, 2, 2, 2, 3]);
+  assert.deepEqual(LEVELS.map(level => level.sources.length), [1, 2, 2, 2, 2, 3]);
   const colors = LEVELS.map(level => new Set(level.sources.map(source => source.color)).size);
-  assert.deepEqual(colors, [1, 1, 2, 2, 2, 3]);
+  assert.deepEqual(colors, [1, 2, 2, 2, 2, 3]);
 });
 
 for (const level of LEVELS) {
@@ -62,18 +61,23 @@ for (const level of LEVELS) {
   });
 }
 
-test('level 1 is only straights and level 2 needs a corner', () => {
-  assert.ok(solutions['1'].every(cell => cell.p === 'h'));
-  assert.ok(solutions['2'].some(cell => ['ne', 'se', 'sw', 'nw'].includes(cell.p)));
+test('intro levels turn, and later references use bridges', () => {
+  const corners = new Set(['ne', 'se', 'sw', 'nw']);
+  assert.ok(solutions['1'].some(cell => corners.has(cell.p)));
+  assert.equal(solutions['1'].some(cell => cell.p === 'bridge'), false);
+  assert.equal(solutions['2'].some(cell => cell.p === 'bridge'), false);
+  assert.ok(solutions['2'].some(cell => corners.has(cell.p)));
+  assert.equal(solutions['3'].filter(cell => cell.p === 'bridge').length, 1);
+  assert.equal(solutions['6'].filter(cell => cell.p === 'bridge').length, 2);
 });
 
 test('bridge levels actually cross, and a plain belt fails there', () => {
-  for (const id of ['5', '6']) {
+  for (const id of ['3', '4', '5', '6']) {
     const level = LEVELS.find(item => item.id === id);
     const won = simulate(level, apply(level, solutions[id]));
-    const crossings = sharedCrossings(won);
-    assert.ok(crossings.length > 0, id);
-    assert.ok(crossings.some(group => new Set(group.map(letter => letter.lane)).size === group.length));
+    const lanes = lanesThroughBridges(won, solutions[id]);
+    assert.ok(lanes.size > 0, id);
+    for (const [cell, used] of lanes) assert.deepEqual([...used].sort(), ['h', 'v'], `${id} ${cell}`);
     const broken = solutions[id].map(cell => cell.p === 'bridge' ? { ...cell, p: 'h' } : cell);
     const failed = simulate(level, apply(level, broken));
     assert.equal(failed.status, 'error');

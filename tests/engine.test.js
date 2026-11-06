@@ -11,7 +11,6 @@ import {
   pieceExit,
   simulate,
 } from '../dist/engine.js';
-import { LEVELS } from '../dist/levels.js';
 
 const level = (patch) => ({
   id: 't',
@@ -171,7 +170,11 @@ test('click cycle and stroke draw straights, corners and bridges', () => {
   assert.equal(nextPiece('bridge'), null);
   assert.equal(nextPiece('nope'), null);
 
-  const puzzle = LEVELS[0];
+  const puzzle = {
+    id: 'stroke', name: 'Протяжка', hint: '', size: 5, walls: [],
+    sources: [{ id: 'red', r: 2, c: 0, color: 'red', shape: 'circle', dir: 'E' }],
+    boxes: [{ id: 'red', r: 2, c: 4, color: 'red', shape: 'circle' }],
+  };
   const straight = paintStroke(puzzle, emptyLayout(puzzle), [
     { r: 2, c: 1 }, { r: 2, c: 2 }, { r: 2, c: 3 },
   ]);
@@ -204,7 +207,17 @@ test('click cycle and stroke draw straights, corners and bridges', () => {
 });
 
 test('campaign undo, reset, level drafts, step and run', () => {
-  const campaign = createCampaign(LEVELS);
+  const straight = {
+    id: '1', name: 'Прямая', hint: '', size: 5, walls: [],
+    sources: [{ id: 'red', r: 2, c: 0, color: 'red', shape: 'circle', dir: 'E' }],
+    boxes: [{ id: 'red', r: 2, c: 4, color: 'red', shape: 'circle' }],
+  };
+  const other = {
+    id: '2', name: 'Другая', hint: '', size: 5, walls: [],
+    sources: [{ id: 'red', r: 0, c: 1, color: 'red', shape: 'circle', dir: 'S' }],
+    boxes: [{ id: 'red', r: 4, c: 1, color: 'red', shape: 'circle' }],
+  };
+  const campaign = createCampaign([straight, other]);
   assert.equal(campaign.level.id, '1');
   assert.equal(campaign.cycle(2, 0), false);
   assert.equal(campaign.stroke([{ r: 2, c: 1 }, { r: 2, c: 2 }, { r: 2, c: 3 }]), true);
