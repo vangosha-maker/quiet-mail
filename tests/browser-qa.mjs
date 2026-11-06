@@ -338,7 +338,11 @@ async function main() {
     if (!/не может ехать дальше|упёрлось/.test(errorText)) fail(`нет объяснения ошибки: ${errorText}`);
     console.log('PASS error:', errorText);
 
+    const solutions = JSON.parse(await readFile(new URL('./solutions.json', import.meta.url), 'utf8'));
+    const cycle = ['h', 'v', 'ne', 'se', 'sw', 'nw', 'bridge'];
+    const recipeFor = id => solutions[id].map(cell => ({ ...cell, steps: cycle.indexOf(cell.p) + 1 }));
     const placed = await evaluate(page, `(() => {
+      const recipe = ${JSON.stringify(recipeFor('1'))};
       const tap = (r, c) => {
         const node = document.querySelector('.cell[data-r="' + r + '"][data-c="' + c + '"]');
         node.dispatchEvent(new PointerEvent('pointerdown', {bubbles:true, button:0, pointerId:1, clientX:8, clientY:8}));
@@ -346,17 +350,41 @@ async function main() {
         node.click();
         return node.dataset.piece;
       };
-      const pieces = [[2,1],[2,2],[2,3]].map(([r,c]) => r + ',' + c + ':' + tap(r, c));
+      for (const spot of recipe) for (let step = 0; step < spot.steps; step += 1) tap(spot.r, spot.c);
       document.querySelector('#run').click();
-      return { pieces, title: document.querySelector('#status-title').textContent, text: document.querySelector('#status-text').textContent };
+      return { title: document.querySelector('#status-title').textContent, text: document.querySelector('#status-text').textContent };
     })()`);
     if (placed.title !== 'Почта дошла') fail(`уровень 1 не решён: ${JSON.stringify(placed)}`);
     await screenshot(page, 'quiet-mail-390x844-win.png');
     console.log('PASS level 1 reference via clicks');
 
+    for (const id of ['4', '5', '6']) {
+      await evaluate(page, `document.querySelector('[data-level="${id}"]').click()`);
+      await waitFor(page, `document.querySelector('#level-tag').textContent === 'Уровень ${id}'`, `уровень ${id}`);
+      await screenshot(page, `quiet-mail-level-${id}.png`);
+      console.log(`PASS screenshot level ${id}`);
+    }
+    await evaluate(page, `(() => {
+      const recipe = ${JSON.stringify(recipeFor('6'))};
+      const tap = (r, c) => {
+        const node = document.querySelector('.cell[data-r="' + r + '"][data-c="' + c + '"]');
+        node.dispatchEvent(new PointerEvent('pointerdown', {bubbles:true, button:0, pointerId:1, clientX:8, clientY:8}));
+        node.dispatchEvent(new PointerEvent('pointerup', {bubbles:true, button:0, pointerId:1, clientX:8, clientY:8}));
+        node.click();
+      };
+      for (const spot of recipe) for (let step = 0; step < spot.steps; step += 1) tap(spot.r, spot.c);
+    })()`);
+    await screenshot(page, 'quiet-mail-level-6-solved.png');
+    await evaluate(page, `document.querySelector('[data-level="1"]').click()`);
+    await waitFor(page, `document.querySelector('#level-tag').textContent === 'Уровень 1'`, 'возврат на уровень 1');
+
     await page.send('Page.reload', { ignoreCache: true });
     await waitFor(page, `document.querySelectorAll('.cell').length === 25`, 'перезагрузка');
-    const kept = await evaluate(page, `document.querySelector('.cell[data-r="2"][data-c="2"]').dataset.piece === 'h' && document.querySelector('[data-level="1"]').getAttribute('aria-label').includes('пройден')`);
+    const kept = await evaluate(page, `(() => {
+      const expected = ${JSON.stringify(solutions['1'])};
+      return expected.every(cell => document.querySelector('.cell[data-r="' + cell.r + '"][data-c="' + cell.c + '"]').dataset.piece === cell.p)
+        && document.querySelector('[data-level="1"]').getAttribute('aria-label').includes('пройден');
+    })()`);
     if (!kept) fail('после перезагрузки черновик или отметка уровня пропали');
     console.log('PASS reload keeps draft and solved level');
 

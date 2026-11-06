@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { SAVE_KEY } from '../dist/save.js';
+
+const solutions = JSON.parse(await readFile(new URL('./solutions.json', import.meta.url), 'utf8'));
+const pieceSteps = { h: 1, v: 2, ne: 3, se: 4, sw: 5, nw: 6, bridge: 7 };
 
 class ClassList {
   constructor() { this.set = new Set(); }
@@ -240,7 +244,10 @@ test('board, keyboard, drawing, run, errors and level switch work without a brow
   assert.equal(cell(2, 1).classList.contains('is-error'), true);
   assert.equal(document.querySelector('#step').disabled, true);
 
-  for (const [r, c] of [[2, 1], [2, 2], [2, 3]]) cell(r, c).click();
+  const lay = (r, c, piece) => {
+    for (let step = 0; step < pieceSteps[piece]; step += 1) cell(r, c).click();
+  };
+  for (const spot of solutions['1']) lay(spot.r, spot.c, spot.p);
   document.querySelector('#run').click();
   assert.equal(document.querySelector('#status-title').textContent, 'Почта дошла');
   assert.match(document.querySelector('#status-text').textContent, /Все письма в своих ящиках/);
@@ -248,8 +255,7 @@ test('board, keyboard, drawing, run, errors and level switch work without a brow
   assert.match(document.querySelector('[data-level="1"]').innerHTML, /<svg/);
 
   document.querySelector('#reset').click();
-  cell(2, 1).click();
-  cell(2, 2).click();
+  for (const spot of solutions['1']) lay(spot.r, spot.c, spot.p);
   document.querySelector('#step').click();
   assert.match(document.querySelector('#status-title').textContent, /Доставка/);
   assert.equal(cell(2, 1).getAttribute('aria-label').includes('красное круглое письмо'), true);
